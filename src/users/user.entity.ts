@@ -18,6 +18,12 @@ export class User {
   @Column({ default: 'client' })
   role!: string;
 
+  @Column({ type: 'varchar', nullable: true })
+  resetPasswordTokenHash!: string | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  resetPasswordExpires!: Date | null;
+
   @OneToMany(() => Reservation, (reservation) => reservation.user)
   reservations!: Reservation[];
 }

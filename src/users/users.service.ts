@@ -41,4 +41,31 @@ export class UsersService {
   findById(id: string): Promise<User | null> {
     return this.usersRepository.findOne({ where: { id } });
   }
+
+  async setResetPasswordToken(
+    userId: string,
+    tokenHash: string,
+    expires: Date,
+  ): Promise<void> {
+    await this.usersRepository.update(userId, {
+      resetPasswordTokenHash: tokenHash,
+      resetPasswordExpires: expires,
+    });
+  }
+
+  findByResetPasswordTokenHash(tokenHash: string): Promise<User | null> {
+    return this.usersRepository.findOne({
+      where: { resetPasswordTokenHash: tokenHash },
+    });
+  }
+
+  async resetPassword(userId: string, newPassword: string): Promise<void> {
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await this.usersRepository.update(userId, {
+      password: hashedPassword,
+      resetPasswordTokenHash: null,
+      resetPasswordExpires: null,
+    });
+  }
 }
