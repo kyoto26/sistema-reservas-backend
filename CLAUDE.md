@@ -30,14 +30,20 @@ npx jest users.service.spec.ts
 npx jest --config ./test/jest-e2e.json app.e2e-spec.ts
 
 npm run seed             # seed the real courts catalog (idempotent, safe to re-run)
+
+docker compose up --build            # build + run backend and Postgres in containers
+docker compose exec backend node dist/seed.js   # run the seed inside the container (ts-node isn't in the production image, see below)
 ```
 
 `src/seed.ts` boots a standalone Nest application context (`NestFactory.createApplicationContext`) and calls `CourtsService` directly — same validation/persistence path as `POST /courts` — to insert the real court catalog (6 courts: `futbol5`/`futbol6`/`futbol8`/`futbol11`, two 5-a-side, two 6-a-side). It's idempotent by `name`: skips any court whose name already exists, so re-running never duplicates. This is the source of truth for the real catalog — don't hand-`curl` new "real" (non-fixture) courts into existence, add them here instead so the catalog stays reproducible across environments.
+
+**Running the seed inside Docker**: `npm run seed` (`ts-node -r tsconfig-paths/register src/seed.ts`) won't work in the production container — `ts-node`/`tsconfig-paths` are `devDependencies`, stripped out of the `production` stage's `npm ci --omit=dev`, and there's no source TS in that image anyway (only compiled `dist/`). Use the compiled JS directly instead: `docker compose exec backend node dist/seed.js`.
 
 Unit test config lives inline in `package.json` (`jest` key) with `rootDir: "src"` — spec files must sit next to the code they test as `*.spec.ts`. E2E tests use the separate `test/jest-e2e.json` config with `rootDir: "."` and match `*.e2e-spec.ts`.
 
 ## Architecture
 
+- **Docker**: `Dockerfile` is a two-stage build — `builder` (installs all deps incl. dev, runs `nest build`) and `production` (fresh `node:22-alpine`, `npm ci --omit=dev` only, copies in `dist/` from `builder`, no source/devDependencies/compilers in the final image). `docker-compose.yml` runs this backend image plus a `postgres:16-alpine` container on a **separate** volume (`postgres_data`) from whatever Postgres you have installed locally — host port `5433` (not `5432`) to avoid clashing with a local install; internally the backend still talks to Postgres on `5432` via the `db` service hostname. `DB_HOST=db` is hardcoded in the compose file for the backend service (not read from `.env`, since `.env`'s `DB_HOST=localhost` is only correct for running the app directly on the host). `depends_on: condition: service_healthy` (backed by a `pg_isready` healthcheck on `db`) plus TypeORM's default connection retry (10 attempts, 3s apart) mean the backend doesn't need to race Postgres's startup.
 - **Module wiring**: `AppModule` (`src/app.module.ts`) loads `ConfigModule` (global, reads `.env`) and `TypeOrmModule.forRootAsync` (Postgres, driven entirely by env vars, `synchronize: true`). TypeORM entities are picked up automatically via the glob `__dirname + '/**/*.entity{.ts,.js}'`, **not** by explicit registration — new entities just need to be placed in a `*.entity.ts` file anywhere under `src/`.
 - **Feature modules follow the standard Nest layout**: `<feature>/<feature>.module.ts` wires `TypeOrmModule.forFeature([Entity])` + controller + service; DTOs live in `<feature>/dto/`. `UsersModule` and `CourtsModule` (`src/users/`, `src/courts/`) are registered in `AppModule`. `CourtsModule` exports `CourtsService` so other modules (e.g. Reservations) can inject it to validate a court exists.
 - **Reservations** (`src/reservations/`): `POST /reservations` is protected with `@UseGuards(JwtAuthGuard)` only (no `@Roles`, any authenticated user can book) and associates the reservation to `@CurrentUser()` — the DTO has no `userId` field, and `whitelist`/`forbidNonWhitelisted` on the global `ValidationPipe` reject one if sent, so a client can never book on someone else's behalf. `CreateReservationDto` also takes an optional `petosColor` (`'red' | 'blue' | 'none'`, validated with `@IsIn`, defaults to `'none'` in the service if omitted) so a user can pick a bib color for their team when booking — it's set-once-at-creation only, no edit endpoint.
