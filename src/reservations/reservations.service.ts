@@ -134,6 +134,39 @@ export class ReservationsService {
     return { ...savedReservation, user: userWithoutPassword };
   }
 
+  async pay(id: string, userId: string) {
+    const reservation = await this.reservationsRepository.findOne({
+      where: { id },
+      relations: { user: true },
+    });
+
+    if (!reservation) {
+      throw new NotFoundException('Reserva no encontrada');
+    }
+
+    if (reservation.user.id !== userId) {
+      throw new ForbiddenException(
+        'No podés pagar una reserva que no es tuya',
+      );
+    }
+
+    if (reservation.status === 'cancelled') {
+      throw new BadRequestException('No podés pagar una reserva cancelada');
+    }
+
+    if (reservation.paymentStatus === 'paid') {
+      throw new ConflictException('Esta reserva ya fue pagada');
+    }
+
+    reservation.paymentStatus = 'paid';
+    const savedReservation = await this.reservationsRepository.save(
+      reservation,
+    );
+
+    const { password, ...userWithoutPassword } = savedReservation.user;
+    return { ...savedReservation, user: userWithoutPassword };
+  }
+
   async reschedule(
     id: string,
     rescheduleReservationDto: RescheduleReservationDto,

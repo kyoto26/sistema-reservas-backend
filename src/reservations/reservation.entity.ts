@@ -24,6 +24,9 @@ export class Reservation {
   @Column({ default: 'none' })
   petosColor!: string;
 
+  @Column({ default: 'pending' })
+  paymentStatus!: string;
+
   @ManyToOne(() => User, (user) => user.reservations)
   user!: User;
 

@@ -49,6 +49,12 @@ export class ReservationsController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Patch(':id/pay')
+  pay(@Param('id') id: string, @CurrentUser() user: Omit<User, 'password'>) {
+    return this.reservationsService.pay(id, user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Patch(':id/reschedule')
   reschedule(
     @Param('id') id: string,
