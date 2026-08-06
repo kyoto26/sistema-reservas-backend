@@ -26,8 +26,12 @@ export class ReservationsService {
     createReservationDto: CreateReservationDto,
     user: Omit<User, 'password'>,
   ): Promise<Reservation> {
-    const { courtId, startTime: startTimeRaw, endTime: endTimeRaw } =
-      createReservationDto;
+    const {
+      courtId,
+      startTime: startTimeRaw,
+      endTime: endTimeRaw,
+      petosColor,
+    } = createReservationDto;
     const startTime = new Date(startTimeRaw);
     const endTime = new Date(endTimeRaw);
 
@@ -72,6 +76,7 @@ export class ReservationsService {
         endTime,
         court: { id: courtId },
         user,
+        petosColor: petosColor ?? 'none',
       });
 
       const savedReservation = await queryRunner.manager.save(reservation);

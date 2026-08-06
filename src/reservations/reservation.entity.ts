@@ -21,6 +21,9 @@ export class Reservation {
   @Column({ default: 'confirmed' })
   status!: string;
 
+  @Column({ default: 'none' })
+  petosColor!: string;
+
   @ManyToOne(() => User, (user) => user.reservations)
   user!: User;
 

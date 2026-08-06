@@ -1,4 +1,4 @@
-import { IsUUID, IsDateString } from 'class-validator';
+import { IsUUID, IsDateString, IsOptional, IsIn } from 'class-validator';
 
 export class CreateReservationDto {
   @IsUUID()
@@ -9,4 +9,8 @@ export class CreateReservationDto {
 
   @IsDateString()
   endTime!: string;
+
+  @IsOptional()
+  @IsIn(['red', 'blue', 'none'])
+  petosColor?: string;
 }
