@@ -2,8 +2,11 @@ import {
   Injectable,
   ConflictException,
   BadRequestException,
+  ForbiddenException,
+  NotFoundException,
 } from '@nestjs/common';
-import { DataSource } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { Reservation } from './reservation.entity';
 import { CreateReservationDto } from './dto/create-reservation.dto';
 import { CourtsService } from '../courts/courts.service';
@@ -12,6 +15,8 @@ import { User } from '../users/user.entity';
 @Injectable()
 export class ReservationsService {
   constructor(
+    @InjectRepository(Reservation)
+    private reservationsRepository: Repository<Reservation>,
     private dataSource: DataSource,
     private courtsService: CourtsService,
   ) {}
@@ -78,5 +83,37 @@ export class ReservationsService {
     } finally {
       await queryRunner.release();
     }
+  }
+
+  findMine(userId: string): Promise<Reservation[]> {
+    return this.reservationsRepository.find({
+      where: { user: { id: userId } },
+      relations: { court: true },
+    });
+  }
+
+  async cancel(id: string, userId: string) {
+    const reservation = await this.reservationsRepository.findOne({
+      where: { id },
+      relations: { user: true },
+    });
+
+    if (!reservation) {
+      throw new NotFoundException('Reserva no encontrada');
+    }
+
+    if (reservation.user.id !== userId) {
+      throw new ForbiddenException(
+        'No podés cancelar una reserva que no es tuya',
+      );
+    }
+
+    reservation.status = 'cancelled';
+    const savedReservation = await this.reservationsRepository.save(
+      reservation,
+    );
+
+    const { password, ...userWithoutPassword } = savedReservation.user;
+    return { ...savedReservation, user: userWithoutPassword };
   }
 }
