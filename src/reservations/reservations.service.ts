@@ -92,6 +92,17 @@ export class ReservationsService {
     });
   }
 
+  async findAll() {
+    const reservations = await this.reservationsRepository.find({
+      relations: { court: true, user: true },
+    });
+
+    return reservations.map((reservation) => {
+      const { password, ...userWithoutPassword } = reservation.user;
+      return { ...reservation, user: userWithoutPassword };
+    });
+  }
+
   async cancel(id: string, userId: string) {
     const reservation = await this.reservationsRepository.findOne({
       where: { id },

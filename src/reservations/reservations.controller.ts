@@ -10,6 +10,8 @@ import {
 import { ReservationsService } from './reservations.service';
 import { CreateReservationDto } from './dto/create-reservation.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { User } from '../users/user.entity';
 
@@ -24,6 +26,13 @@ export class ReservationsController {
     @CurrentUser() user: Omit<User, 'password'>,
   ) {
     return this.reservationsService.create(createReservationDto, user);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  @Get('all')
+  findAll() {
+    return this.reservationsService.findAll();
   }
 
   @UseGuards(JwtAuthGuard)
