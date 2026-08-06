@@ -28,7 +28,11 @@ npx jest users.service.spec.ts
 
 # Run a single e2e test file
 npx jest --config ./test/jest-e2e.json app.e2e-spec.ts
+
+npm run seed             # seed the real courts catalog (idempotent, safe to re-run)
 ```
+
+`src/seed.ts` boots a standalone Nest application context (`NestFactory.createApplicationContext`) and calls `CourtsService` directly — same validation/persistence path as `POST /courts` — to insert the real court catalog (6 courts: `futbol5`/`futbol6`/`futbol8`/`futbol11`, two 5-a-side, two 6-a-side). It's idempotent by `name`: skips any court whose name already exists, so re-running never duplicates. This is the source of truth for the real catalog — don't hand-`curl` new "real" (non-fixture) courts into existence, add them here instead so the catalog stays reproducible across environments.
 
 Unit test config lives inline in `package.json` (`jest` key) with `rootDir: "src"` — spec files must sit next to the code they test as `*.spec.ts`. E2E tests use the separate `test/jest-e2e.json` config with `rootDir: "."` and match `*.e2e-spec.ts`.
 
