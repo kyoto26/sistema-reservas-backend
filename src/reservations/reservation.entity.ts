@@ -12,10 +12,10 @@ export class Reservation {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column('timestamp')
+  @Column('timestamptz')
   startTime!: Date;
 
-  @Column('timestamp')
+  @Column('timestamptz')
   endTime!: Date;
 
   @Column({ default: 'confirmed' })
