@@ -9,6 +9,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { Reservation } from './reservation.entity';
 import { CreateReservationDto } from './dto/create-reservation.dto';
+import { RescheduleReservationDto } from './dto/reschedule-reservation.dto';
 import { CourtsService } from '../courts/courts.service';
 import { User } from '../users/user.entity';
 
@@ -126,5 +127,90 @@ export class ReservationsService {
 
     const { password, ...userWithoutPassword } = savedReservation.user;
     return { ...savedReservation, user: userWithoutPassword };
+  }
+
+  async reschedule(
+    id: string,
+    rescheduleReservationDto: RescheduleReservationDto,
+    userId: string,
+  ) {
+    const reservation = await this.reservationsRepository.findOne({
+      where: { id },
+      relations: { user: true, court: true },
+    });
+
+    if (!reservation) {
+      throw new NotFoundException('Reserva no encontrada');
+    }
+
+    if (reservation.user.id !== userId) {
+      throw new ForbiddenException(
+        'No podés reagendar una reserva que no es tuya',
+      );
+    }
+
+    if (reservation.status === 'cancelled') {
+      throw new BadRequestException(
+        'No podés reagendar una reserva cancelada',
+      );
+    }
+
+    const startTime = new Date(rescheduleReservationDto.startTime);
+    const endTime = new Date(rescheduleReservationDto.endTime);
+
+    if (startTime >= endTime) {
+      throw new BadRequestException(
+        'La hora de inicio debe ser anterior a la hora de fin',
+      );
+    }
+
+    const courtId = reservation.court.id;
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      await queryRunner.query(
+        'SELECT pg_advisory_xact_lock(hashtext($1)::bigint)',
+        [courtId],
+      );
+
+      const overlapping = await queryRunner.manager
+        .createQueryBuilder(Reservation, 'reservation')
+        .where('reservation.courtId = :courtId', { courtId })
+        .andWhere('reservation.id != :id', { id })
+        .andWhere('reservation.status != :cancelled', {
+          cancelled: 'cancelled',
+        })
+        .andWhere('reservation.startTime < :endTime', { endTime })
+        .andWhere('reservation.endTime > :startTime', { startTime })
+        .getOne();
+
+      if (overlapping) {
+        throw new ConflictException(
+          'Ya existe una reserva para esa cancha en ese horario',
+        );
+      }
+
+      await queryRunner.manager.update(Reservation, id, {
+        startTime,
+        endTime,
+      });
+
+      await queryRunner.commitTransaction();
+
+      const { password, ...userWithoutPassword } = reservation.user;
+      return {
+        ...reservation,
+        startTime,
+        endTime,
+        user: userWithoutPassword,
+      };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
   }
 }

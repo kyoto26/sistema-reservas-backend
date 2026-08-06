@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { ReservationsService } from './reservations.service';
 import { CreateReservationDto } from './dto/create-reservation.dto';
+import { RescheduleReservationDto } from './dto/reschedule-reservation.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
@@ -45,5 +46,19 @@ export class ReservationsController {
   @Patch(':id/cancel')
   cancel(@Param('id') id: string, @CurrentUser() user: Omit<User, 'password'>) {
     return this.reservationsService.cancel(id, user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch(':id/reschedule')
+  reschedule(
+    @Param('id') id: string,
+    @Body() rescheduleReservationDto: RescheduleReservationDto,
+    @CurrentUser() user: Omit<User, 'password'>,
+  ) {
+    return this.reservationsService.reschedule(
+      id,
+      rescheduleReservationDto,
+      user.id,
+    );
   }
 }
