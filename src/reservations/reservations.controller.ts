@@ -45,7 +45,7 @@ export class ReservationsController {
   @UseGuards(JwtAuthGuard)
   @Patch(':id/cancel')
   cancel(@Param('id') id: string, @CurrentUser() user: Omit<User, 'password'>) {
-    return this.reservationsService.cancel(id, user.id);
+    return this.reservationsService.cancel(id, user);
   }
 
   @UseGuards(JwtAuthGuard)

@@ -109,7 +109,7 @@ export class ReservationsService {
     });
   }
 
-  async cancel(id: string, userId: string) {
+  async cancel(id: string, user: Omit<User, 'password'>) {
     const reservation = await this.reservationsRepository.findOne({
       where: { id },
       relations: { user: true },
@@ -119,7 +119,7 @@ export class ReservationsService {
       throw new NotFoundException('Reserva no encontrada');
     }
 
-    if (reservation.user.id !== userId) {
+    if (reservation.user.id !== user.id && user.role !== 'admin') {
       throw new ForbiddenException(
         'No podés cancelar una reserva que no es tuya',
       );
