@@ -104,7 +104,12 @@ export class ReservationsService {
     });
 
     return reservations.map((reservation) => {
-      const { password, ...userWithoutPassword } = reservation.user;
+      const {
+        password,
+        resetPasswordTokenHash,
+        resetPasswordExpires,
+        ...userWithoutPassword
+      } = reservation.user;
       return { ...reservation, user: userWithoutPassword };
     });
   }
@@ -130,7 +135,12 @@ export class ReservationsService {
       reservation,
     );
 
-    const { password, ...userWithoutPassword } = savedReservation.user;
+    const {
+      password,
+      resetPasswordTokenHash,
+      resetPasswordExpires,
+      ...userWithoutPassword
+    } = savedReservation.user;
     return { ...savedReservation, user: userWithoutPassword };
   }
 
@@ -163,7 +173,12 @@ export class ReservationsService {
       reservation,
     );
 
-    const { password, ...userWithoutPassword } = savedReservation.user;
+    const {
+      password,
+      resetPasswordTokenHash,
+      resetPasswordExpires,
+      ...userWithoutPassword
+    } = savedReservation.user;
     return { ...savedReservation, user: userWithoutPassword };
   }
 
@@ -237,7 +252,12 @@ export class ReservationsService {
 
       await queryRunner.commitTransaction();
 
-      const { password, ...userWithoutPassword } = reservation.user;
+      const {
+        password,
+        resetPasswordTokenHash,
+        resetPasswordExpires,
+        ...userWithoutPassword
+      } = reservation.user;
       return {
         ...reservation,
         startTime,

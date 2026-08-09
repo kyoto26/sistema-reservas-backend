@@ -12,7 +12,11 @@ export class UsersService {
     private usersRepository: Repository<User>,
   ) {}
 
-  async create(createUserDto: CreateUserDto): Promise<Omit<User, 'password'>> {
+  async create(
+    createUserDto: CreateUserDto,
+  ): Promise<
+    Omit<User, 'password' | 'resetPasswordTokenHash' | 'resetPasswordExpires'>
+  > {
     const existingUser = await this.usersRepository.findOne({
       where: { email: createUserDto.email },
     });
@@ -30,7 +34,12 @@ export class UsersService {
 
     const savedUser = await this.usersRepository.save(newUser);
 
-    const { password, ...userWithoutPassword } = savedUser;
+    const {
+      password,
+      resetPasswordTokenHash,
+      resetPasswordExpires,
+      ...userWithoutPassword
+    } = savedUser;
     return userWithoutPassword;
   }
 
