@@ -12,6 +12,7 @@ import { CreateReservationDto } from './dto/create-reservation.dto';
 import { RescheduleReservationDto } from './dto/reschedule-reservation.dto';
 import { CourtsService } from '../courts/courts.service';
 import { User } from '../users/user.entity';
+import { applyOverlapConditions } from './reservation-overlap';
 
 @Injectable()
 export class ReservationsService {
@@ -55,15 +56,15 @@ export class ReservationsService {
         [courtId],
       );
 
-      const overlapping = await queryRunner.manager
+      const overlapQuery = queryRunner.manager
         .createQueryBuilder(Reservation, 'reservation')
-        .where('reservation.courtId = :courtId', { courtId })
-        .andWhere('reservation.status != :cancelled', {
-          cancelled: 'cancelled',
-        })
-        .andWhere('reservation.startTime < :endTime', { endTime })
-        .andWhere('reservation.endTime > :startTime', { startTime })
-        .getOne();
+        .where('reservation.courtId = :courtId', { courtId });
+      const overlapping = await applyOverlapConditions(
+        overlapQuery,
+        'reservation',
+        startTime,
+        endTime,
+      ).getOne();
 
       if (overlapping) {
         throw new ConflictException(
@@ -228,16 +229,16 @@ export class ReservationsService {
         [courtId],
       );
 
-      const overlapping = await queryRunner.manager
+      const overlapQuery = queryRunner.manager
         .createQueryBuilder(Reservation, 'reservation')
         .where('reservation.courtId = :courtId', { courtId })
-        .andWhere('reservation.id != :id', { id })
-        .andWhere('reservation.status != :cancelled', {
-          cancelled: 'cancelled',
-        })
-        .andWhere('reservation.startTime < :endTime', { endTime })
-        .andWhere('reservation.endTime > :startTime', { startTime })
-        .getOne();
+        .andWhere('reservation.id != :id', { id });
+      const overlapping = await applyOverlapConditions(
+        overlapQuery,
+        'reservation',
+        startTime,
+        endTime,
+      ).getOne();
 
       if (overlapping) {
         throw new ConflictException(
