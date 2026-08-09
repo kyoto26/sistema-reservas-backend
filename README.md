@@ -83,6 +83,10 @@ Check out a few resources that may come in handy when working with NestJS:
 - To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
 - Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
 
+## Pendientes
+
+- **Validación de duración/fechas en reservas**: `CreateReservationDto` y `RescheduleReservationDto` solo validan formato ISO (`@IsDateString`) y que `startTime < endTime` (a nivel service). Falta acotar duración mínima/máxima y evitar reservas con fecha de inicio en el pasado. Detectado en la pasada de seguridad de 2026-08-08, dejado fuera de esa pasada a propósito.
+
 ## Support
 
 Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
