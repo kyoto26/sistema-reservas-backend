@@ -1,102 +1,114 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Sistema de Reservas
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Sistema de reservas de canchas deportivas (fútbol 5/6/8/11), full-stack. Un
+usuario ve la disponibilidad, reserva un horario, elige color de petos para
+su equipo y paga (simulado); puede reagendar o cancelar después. Un admin
+gestiona el catálogo de canchas y tiene visibilidad de todas las reservas
+del sistema.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+Este repositorio es el **backend** (API). El frontend vive en un repositorio
+separado, `sistema-reservas-frontend`.
 
-## Description
+## Stack técnico
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+- **Backend** (este repo): NestJS 11 + TypeORM + PostgreSQL 16, autenticación
+  JWT (`passport-jwt`), DTOs validados con `class-validator`, rate limiting
+  con `@nestjs/throttler`, build Docker multi-stage.
+- **Frontend** (repo separado): Next.js 16 (App Router) + React 19 +
+  TypeScript + Tailwind CSS v4.
 
-## Project setup
+## Cómo levantarlo localmente
+
+### Backend (este repo)
+
+**Opción A — Docker (recomendado):**
 
 ```bash
-$ npm install
+docker compose up --build
+# levanta Postgres (host :5433) + backend (:3000)
+
+docker compose exec backend node dist/seed.js
+# carga el catálogo real de canchas — idempotente, no duplica si ya corrió
 ```
 
-## Compile and run the project
+**Opción B — Node directo**, con un Postgres propio ya corriendo:
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+npm install
+npm run start:dev
+npm run seed   # carga el catálogo de canchas
 ```
 
-## Run tests
+Variables de entorno requeridas (`.env`, no versionado): `DB_HOST`,
+`DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_NAME`, `JWT_SECRET`,
+`JWT_EXPIRES_IN`, opcional `PORT` (default `3000`). Con Docker, `DB_HOST` se
+fija a `db` directamente en `docker-compose.yml` — el `.env` con `DB_HOST`
+local solo aplica corriendo el backend fuera de Docker.
+
+**Comandos útiles:**
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npm run lint            # eslint --fix
+npm run format           # prettier
+npm test                   # unit tests (jest)
+npm run test:e2e            # e2e tests
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### Frontend (repo separado)
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+npm install
+npm run dev   # http://localhost:3001
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+Necesita `NEXT_PUBLIC_API_URL` apuntando a este backend (si no se define,
+usa `http://localhost:3000` por default).
 
-## Resources
+## Features implementadas
 
-Check out a few resources that may come in handy when working with NestJS:
+- Autenticación con JWT (`POST /auth/login`, `GET /auth/me`); passwords
+  hasheadas con bcrypt.
+- Roles `client`/`admin` con autorización real aplicada en el backend
+  (guards + chequeo de dueño en cada operación) — no es solo ocultar
+  botones en la UI, un request directo sin permisos se rechaza igual.
+- Reservas con lock de concurrencia por cancha (advisory lock de Postgres)
+  para que dos requests simultáneos no dupliquen un horario, elección de
+  color de petos, pago simulado, reagendado y cancelación.
+- Historial de reservas propio y panel admin con vista global de reservas
+  y CRUD de canchas.
+- Recuperación de contraseña vía API (`/auth/forgot-password` +
+  `/auth/reset-password`) — el flujo de backend está completo, todavía sin
+  pantalla en el frontend (ver Roadmap).
+- Rate limiting (5 intentos / 60s por IP) en `POST /auth/login` para
+  mitigar fuerza bruta de contraseñas.
+- Scrub de campos sensibles (password, hash de reset de contraseña) en
+  toda respuesta que incluya datos de usuario.
+- Validación de inputs con `class-validator` y `whitelist` +
+  `forbidNonWhitelisted` global, incluyendo límites de longitud alineados
+  al límite de 72 bytes de bcrypt.
+- Diseño responsive e identidad visual propia (paleta rojo/negro,
+  tipografías dedicadas para heading y cuerpo) en el frontend.
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+## Roadmap (mejoras no implementadas a propósito)
 
-## Pendientes
-
-- **Validación de duración/fechas en reservas**: `CreateReservationDto` y `RescheduleReservationDto` solo validan formato ISO (`@IsDateString`) y que `startTime < endTime` (a nivel service). Falta acotar duración mínima/máxima y evitar reservas con fecha de inicio en el pasado. Detectado en la pasada de seguridad de 2026-08-08, dejado fuera de esa pasada a propósito.
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+- Pantalla de recuperación de contraseña en el frontend (el backend ya
+  soporta el flujo completo).
+- Migraciones formales de base de datos (hoy `synchronize: true` de
+  TypeORM).
+- Tests automatizados (Jest) — unit y e2e.
+- WebSockets / actualizaciones en tiempo real.
+- Canchas favoritas.
+- Notificaciones (email/push) — el reset de contraseña hoy devuelve el
+  token directo en la respuesta en vez de enviarlo por email.
+- Modo oscuro/claro con toggle manual (hoy el frontend solo sigue
+  `prefers-color-scheme` del sistema operativo).
+- Filtros de búsqueda de canchas (tipo, precio, horario).
+- Duración mínima/máxima de reservas: `CreateReservationDto` y
+  `RescheduleReservationDto` solo validan formato ISO y que
+  `startTime < endTime`, sin acotar cuán corta/larga puede ser una reserva
+  ni impedir fechas en el pasado.
+- Pruebas Gherkin/BDD.
+- Pruebas de mutación.
+- Serialización centralizada de entidades con `class-transformer` — hoy el
+  scrub de campos sensibles se hace a mano, campo por campo, en cada
+  service que devuelve un `User`.
