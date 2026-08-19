@@ -26,6 +26,10 @@ import { ReservationsModule } from './reservations/reservations.module';
         database: config.get<string>('DB_NAME'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
         synchronize: true,
+        ssl:
+          config.get<string>('DB_SSL') === 'true'
+            ? { rejectUnauthorized: false }
+            : false,
       }),
     }),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 5 }]),
