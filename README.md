@@ -100,8 +100,6 @@ usa `http://localhost:3000` por default).
 - Canchas favoritas.
 - Notificaciones (email/push) — el reset de contraseña hoy devuelve el
   token directo en la respuesta en vez de enviarlo por email.
-- Modo oscuro/claro con toggle manual (hoy el frontend solo sigue
-  `prefers-color-scheme` del sistema operativo).
 - Filtros de búsqueda de canchas (tipo, precio, horario).
 - Duración mínima/máxima de reservas: `CreateReservationDto` y
   `RescheduleReservationDto` solo validan formato ISO y que
