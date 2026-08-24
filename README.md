@@ -86,6 +86,8 @@ usa `http://localhost:3000` por default).
 - Validación de inputs con `class-validator` y `whitelist` +
   `forbidNonWhitelisted` global, incluyendo límites de longitud alineados
   al límite de 72 bytes de bcrypt.
+- Headers de seguridad HTTP con Helmet (CSP, HSTS, `X-Frame-Options`, etc.)
+  aplicados globalmente en `main.ts`.
 - Diseño responsive e identidad visual propia (paleta rojo/negro,
   tipografías dedicadas para heading y cuerpo) en el frontend.
 
