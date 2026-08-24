@@ -25,9 +25,9 @@ function asQueryBuilder(fake: FakeQueryBuilder) {
   return fake as unknown as SelectQueryBuilder<Reservation>;
 }
 
-// Toma los params que applyOverlapConditions realmente pasó a andWhere y los
-// aplica contra una reserva existente, para saber si Postgres la consideraría
-// solapada — sin ejecutar SQL real.
+// Takes the params that applyOverlapConditions actually passed to andWhere
+// and applies them against an existing reservation, to determine whether
+// Postgres would consider it overlapping — without executing real SQL.
 function wouldMatch(
   calls: Call[],
   existing: { status: string; startTime: Date; endTime: Date },

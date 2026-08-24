@@ -8,8 +8,8 @@ async function bootstrap() {
 
   app.use(
     helmet({
-      // API pura consumida desde otro origen (CORS_ORIGIN) — el default
-      // 'same-origin' de Helmet bloquea esas respuestas pese a que CORS las permite.
+      // Pure API consumed from another origin (CORS_ORIGIN) — Helmet's
+      // 'same-origin' default blocks those responses even though CORS allows them.
       crossOriginResourcePolicy: { policy: 'cross-origin' },
     }),
   );

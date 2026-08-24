@@ -49,8 +49,8 @@ export class ReservationsService {
     await queryRunner.startTransaction();
 
     try {
-      // Serializa la creación de reservas por cancha: dos requests concurrentes
-      // para la misma courtId esperan su turno acá antes de chequear solapamiento.
+      // Serializes reservation creation per court: two concurrent requests
+      // for the same courtId wait their turn here before checking for overlap.
       await queryRunner.query(
         'SELECT pg_advisory_xact_lock(hashtext($1)::bigint)',
         [courtId],

@@ -59,7 +59,7 @@ export class AuthService {
       expiresAt,
     );
 
-    // Simulación: en un flujo real esto se enviaría por email, no en la respuesta.
+    // Simulation: in a real flow this would be sent by email, not in the response.
     return { resetToken, expiresAt };
   }
 
